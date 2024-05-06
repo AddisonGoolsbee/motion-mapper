@@ -24,6 +24,9 @@
     import {B1Z1Robot, XArm7Robot} from "./js/utils/utils_robot.js";
     import {mul_matrix_matrix, mul_matrix_scalar, add_matrix_matrix} from "./js/utils/utils_math.js";
     import {optimization_solve} from "./js/utils/utils_optimization.js";
+    import {update_position} from "./js/game/movement.js";
+    import {shallowCompareArrays} from "./js/game/general.js";
+
 
     // let engine = ThreeEngine.new_default_3d(0.7, 0, 0.5, false);
     let engine = ThreeEngine.new_default_3d(1, 0, 0.5, false);
@@ -132,28 +135,29 @@
             let error = numeric.sub(end_effector_position, target_position);
             let error_norm = numeric.norm2(error);
             // console.log(end_effector_position, target_position, joint_angles, fk[18])
-            // engine.draw_debug_vector([0,0,0], end_effector_position, 0.003, 0.03, 0xff2222);
+            engine.draw_debug_vector([0,0,0], end_effector_position, 0.003, 0.03, 0xff2222);
             // console.log(error_norm)
             return error_norm;
         }
 
         return objective_function
     }
-
-    let objective_function = generate_objective_function([0.7, 0.02, -0.1])
-
-    console.log(objective_function(current_joint_angles))
-    current_joint_angles[5] = 0.00001
-    console.log(objective_function(current_joint_angles))
-    current_joint_angles[5] = 2
-    console.log(objective_function(current_joint_angles))
-
-    let res = optimization_solve(objective_function, Array(joints.length).fill(0), undefined, 'bfgs')
-    current_joint_angles = res
-    console.log(res)
+    
+    let prev_position = [1345,1,5]
+    let target_position = [0,0,0]
 
     engine.animation_loop( ()  => {
-        const a = calculate_forward_kinematics(current_joint_angles)
+        if (!shallowCompareArrays(prev_position, target_position)) {
+            console.log('new target position')
+            prev_position = [...target_position]
+            let objective_function = generate_objective_function(target_position)
+            let res = optimization_solve(objective_function, current_joint_angles, 40, 'bfgs')
+            current_joint_angles = res
+        }
+        calculate_forward_kinematics(current_joint_angles)
+        
+        target_position = update_position(target_position)
+        console.log(target_position, prev_position)
     });
 
 </script>
