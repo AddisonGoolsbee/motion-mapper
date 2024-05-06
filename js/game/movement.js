@@ -7,7 +7,7 @@ let dIsPressed = false;
 let spaceIsPressed = false;
 let shiftIsPressed = false;
 
-document.addEventListener('keydown', function(event) {
+window.addEventListener('keydown', function(event) {
     switch (event.key) {
         case 'w':
         case 'W':
@@ -36,7 +36,7 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-document.addEventListener('keyup', function(event) {
+window.addEventListener('keyup', function(event) {
     switch (event.key) {
         case 'w':
         case 'W':

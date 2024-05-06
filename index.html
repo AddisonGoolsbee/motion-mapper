@@ -28,6 +28,9 @@
     import {shallowCompareArrays} from "./js/game/general.js";
     import {calculateForwardKinematics} from "./js/game/forward_kinematics.js";
 
+    document.body.setAttribute('tabindex', '-1');
+    document.body.focus();
+
     let engine = ThreeEngine.new_default_3d(1, 0, 0.5, false);
 
     let robot = new XArm7Robot();
@@ -42,8 +45,10 @@
 
     let actions = {
         reset: function() {
-            target_position = [0,0,0]
+            current_joint_angles.fill(0);
+            target_position = [0,0,0.0001]
             refresh_displays(gui);
+            document.body.focus()
         }
     }
 
