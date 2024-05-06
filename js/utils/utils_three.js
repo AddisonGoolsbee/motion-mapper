@@ -75,9 +75,9 @@ export class ThreeEngine {
                 document.body.appendChild(renderer.domElement);
             }
         });
-        // const controls = new OrbitControls(camera, renderer.domElement);
-        // controls.enableDamping = true;
-        const controls = false;
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        // const controls = false;
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // soft white light
         // ambientLight.castShadow = true;
@@ -155,7 +155,7 @@ export class ThreeEngine {
         z_up_set_object_position(engine.camera, camera_x, camera_y, camera_z);
         engine.camera.lookAt(-0.5,0,0);
         engine.is2D = false;
-        engine.controls = false;
+        // engine.controls = true;
 
         if (orthographic_camera) {
             window.addEventListener('resize', engine.on_window_resize_orthographic.bind(engine), false);

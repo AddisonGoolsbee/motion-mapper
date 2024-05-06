@@ -8,7 +8,7 @@ import {
     frobenius_norm_matrix, identity_matrix, mul_matrix_matrix,
     mul_matrix_scalar,
     roll_list_into_column_vec_matrix, roll_list_into_row_vec_matrix, sub_matrix_matrix, transpose, unroll_matrix_to_list
-} from "../../Spring24_Project_Framework/js/utils/utils_math.js";
+} from "./utils_math.js";
 import {minimize_Powell, minimize_GradientDescent, minimize_L_BFGS} from "./opt.js";
 
 export function gradient_fd(f, x) {
@@ -110,6 +110,7 @@ export function optimization_bfgs(f, x0, max_iter=100) {
     }
 
     let solution = minimize_L_BFGS(f, g, x0, max_iter);
+    console.log(solution)
 
     return solution.argument;
 }
