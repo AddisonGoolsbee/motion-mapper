@@ -65,7 +65,7 @@ document.addEventListener('keyup', function(event) {
     }
 });
 
-export const update_position = (position) => {
+export const updatePosition = (position) => {
 
     if (wIsPressed) {
         position[0] -= MOVEMENT_SPEED;

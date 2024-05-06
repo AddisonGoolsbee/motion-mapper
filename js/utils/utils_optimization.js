@@ -110,7 +110,7 @@ export function optimization_bfgs(f, x0, max_iter=100) {
     }
 
     let solution = minimize_L_BFGS(f, g, x0, max_iter);
-    console.log(solution)
+    // console.log(solution)
 
     return solution.argument;
 }
