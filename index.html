@@ -64,7 +64,7 @@
                 return 1000000
             }
 
-            console.log(joint_angles)
+            // console.log(joint_angles)
             let fk = calculateForwardKinematics(robot, engine, links, joints, joint_angles);
             let end_effector = fk[fk.length - 1];
             // let end_effector_position = [end_effector[0][3], end_effector[1][3], end_effector[2][3]];
@@ -89,6 +89,7 @@
 
     engine.animation_loop( ()  => {
         if (!shallowCompareArrays(prev_position, target_position)) {
+            console.log('e')
             prev_position = [...target_position]
             let objective_function = generate_objective_function(target_position)
             let res = optimization_solve(objective_function, current_joint_angles, 40, 'bfgs')

@@ -87,7 +87,6 @@ const ln_SO3 = (m) => {
 
 export const calculate_distance = (m1, m2) => {
     // find displacement between the two elements (m1^-1 * m2)
-    console.log(m1, m2)
     let m1_inv = numeric.inv(m1)
     let disp = mul_matrix_matrix(m1_inv, m2)
 
