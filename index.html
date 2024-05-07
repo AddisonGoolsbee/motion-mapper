@@ -33,7 +33,7 @@
     document.body.setAttribute('tabindex', '-1');
     document.body.focus();
 
-    let engine = ThreeEngine.new_default_3d(1, 0, 0.5, false);
+    let engine = ThreeEngine.new_default_3d(1.5, 0.5, 1.5, false);
 
     let robot = new XArm7Robot();
     robot.spawn_robot(engine);
@@ -60,8 +60,6 @@
         let [x,y,z] = numeric.sub(target_position, base_position)
         let yaw = Math.atan2(y, x);
         let pitch = Math.atan2(z, Math.sqrt(x * x + y * y));
-        yaw = yaw * 180 / Math.PI;
-        pitch = pitch * 180 / Math.PI;
         return [yaw, pitch]
     }
 
@@ -80,24 +78,29 @@
             let end_effector_position = [end_effector[0][3], end_effector[1][3], end_effector[2][3]];
 
             let first_effector_position = [fk[1][0][3], fk[1][1][3], fk[1][2][3]];
+            let [yaw, pitch] = get_euler_angles(target_position, first_effector_position)
 
             // let [x,y,z] = numeric.sub(target_position, first_effector_position)
             // let yaw = Math.atan2(y, x);
             // let pitch = Math.atan2(z, Math.sqrt(x * x + y * y));
             // yaw = yaw * 180 / Math.PI;
             // pitch = pitch * 180 / Math.PI;
-            // let y_rot = get_rotation_so3_matrix('y', pitch);
+            let y_rot = get_rotation_so3_matrix('y', pitch);
+            
+            // console.log(pitch, yaw)
             // // let z_rot = get_rotation_so3_matrix('z', yaw);
             // // const SO3 = mul_matrix_matrix(y_rot, z_rot);
             // const SO3 = y_rot;
             // console.log(pitch)
             // 3x3 identity
-            const SO3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-            const target_SE3 = construct_SE3(SO3, target_position);
+            // const SO3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+            const target_SE3 = construct_SE3(y_rot, target_position);
+            // console.log(-pitch, y_rot, target_SE3)
 
             // let error = numeric.sub(end_effector_position, target_position);
             // let error_norm = numeric.norm2(error);
             let error = calculate_distance(end_effector, target_SE3);
+            console.log(error)
             let error_norm = error * error
             // console.log(error_norm, end_effector, target_SE3)
             // console.log(end_effector_position, target_position, joint_angles, fk[18])
@@ -110,15 +113,22 @@
     }
 
     engine.animation_loop( ()  => {
-        engine.draw_debug_vector([0,0,0], target_position, 0.003, 0.03, 0xff2222);
-        console.log(get_euler_angles(target_position, [0,0,0]))
+       
         
         let objective_function = generate_objective_function(target_position)
         let res = optimization_solve(objective_function, current_joint_angles, 35, 'gd')
         current_joint_angles = res
-        calculateForwardKinematics(robot, engine, links, joints, current_joint_angles)
+        let fk = calculateForwardKinematics(robot, engine, links, joints, current_joint_angles)
         
         target_position = updatePosition(target_position)
+
+        // engine.draw_debug_vector([0,0,0], target_position, 0.003, 0.03, 0xff2222);
+        // console.log(get_euler_angles(target_position, [0,0,0]))
+
+        let first_effector_position = [fk[1][0][3], fk[1][1][3], fk[1][2][3]];
+        engine.draw_debug_vector(first_effector_position, target_position, 0.003, 0.03, 0xff2222);
+        // console.log(get_euler_angles(target_position, first_effector_position))
+        
     });
 
 </script>

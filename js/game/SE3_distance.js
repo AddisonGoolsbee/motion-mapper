@@ -105,7 +105,7 @@ export const calculate_distance = (m1, m2) => {
     let a3 = so3[1][0]
 
     // solve for p and q
-    let beta = frobenius_norm_matrix([so3[2][1], so3[0][2], 1]);
+    let beta = frobenius_norm_matrix([a1, a2, a3]);
     let p, q;
     if (Math.abs(beta) < 0.000001) {
         // taylor series approx.

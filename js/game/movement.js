@@ -1,4 +1,4 @@
-const MOVEMENT_SPEED = 0.01;
+const MOVEMENT_SPEED = 0.04;
 const FPS = 30;
 const MS_PER_FRAME = 1000 / FPS;
 
