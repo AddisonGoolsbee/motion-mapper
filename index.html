@@ -55,8 +55,15 @@
         }
     }
 
+    let settings = {
+        score: 0,
+        high_score: 0,
+    }
+
     let gui = get_default_lil_gui();
     gui.add(actions, 'reset').name('Reset')
+    gui.add(settings, 'score').name('score').disable()
+    gui.add(settings, 'high_score').name('high score').disable()
 
     const get_euler_angles = (target_position, base_position) => {
         let [x,y,z] = numeric.sub(target_position, base_position)
@@ -115,7 +122,13 @@
     }
 
     const spawn_sphere = () => {
-        return engine.draw_debug_sphere([1,0,1], 0.05, 0x00ff00, 0.8, 10)
+        for (let i = 0; i < 10; i++) {
+            console.log(randomPointInEllipsoid())
+        }
+        let sphere = engine.draw_debug_sphere([1,0,1], 0.05, 0x00ff00, 0.8, 10)
+        let new_position = randomPointInEllipsoid()
+        sphere.position.set(...new_position)
+        return sphere
     }
 
     
@@ -125,7 +138,8 @@
         console.log(new_position)
         sphere.position.set(...new_position)
         score++;
-        console.log(score)
+        settings.score = score
+        refresh_displays(gui)
     }
 
     current_sphere = spawn_sphere()
@@ -136,7 +150,7 @@
         let y = -current_sphere.position.z
         let z = current_sphere.position.y
         let distance = Math.sqrt(Math.pow(x - position[0], 2) + Math.pow(y - position[1], 2) + Math.pow(z - position[2], 2))
-        if (distance < 0.05) {
+        if (distance < 0.07) {
             relocate_sphere(current_sphere)
         }
     }
@@ -149,25 +163,27 @@
         const ZMIN = -0.35
         const ZMAX = 1.05
 
-        let a = (XMAX - XMIN) / 2;
-        let b = (ZMAX - ZMIN) / 2;
-        let c = (YMAX - YMIN) / 2;
+        let a = Math.abs(XMAX - XMIN) / 2;
+        let b = Math.abs(YMAX - YMIN) / 2;
+        let c = Math.abs(ZMAX - ZMIN) / 2;
 
         let x0 = XMIN + a;
-        let z0 = ZMIN + b;
-        let y0 = YMIN + c;
+        let y0 = YMIN + b;
+        let z0 = ZMIN + c;
 
+        // Generate a random point within the unit sphere
         let u = Math.random();
         let v = Math.random();
         let theta = 2 * Math.PI * u;
         let phi = Math.acos(2 * v - 1);
-        let r = Math.cbrt(Math.random()); 
+        let r = Math.cbrt(Math.random()); // Cube root to ensure uniform distribution
 
+        // Scale the point to fit the ellipsoid using its radii and translate to the center
         let x = x0 + a * r * Math.sin(phi) * Math.cos(theta);
-        let z = y0 + b * r * Math.sin(phi) * Math.sin(theta);
-        let y = z0 + c * r * Math.cos(phi);
+        let y = y0 + b * r * Math.sin(phi) * Math.sin(theta);
+        let z = z0 + c * r * Math.cos(phi);
 
-        return [x, y, z];
+        return [x, z, y];
     }
 
     engine.animation_loop( ()  => {
