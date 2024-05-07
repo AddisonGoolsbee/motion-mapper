@@ -42,7 +42,6 @@
     let joints = robot.joints;
     let kinematic_hierarchy = robot.kinematic_hierarchy;
     let current_joint_angles = Array(joints.length).fill(0);
-    let prev_position = [-1,-1,-1]
     let target_position = [0,0,0]
 
     let actions = {
@@ -67,7 +66,7 @@
             // console.log(joint_angles)
             let fk = calculateForwardKinematics(robot, engine, links, joints, joint_angles);
             let end_effector = fk[fk.length - 1];
-            // let end_effector_position = [end_effector[0][3], end_effector[1][3], end_effector[2][3]];
+            let end_effector_position = [end_effector[0][3], end_effector[1][3], end_effector[2][3]];
 
             // const yaw = Math.atan2(target_position[0], target_position[1]);
             // const pitch = Math.atan2(-target_position[2], Math.sqrt(target_position[0] ** 2 + target_position[1] ** 2));
@@ -76,8 +75,11 @@
             const SO3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
             const target_SE3 = construct_SE3(SO3, target_position);
 
+            // let error = numeric.sub(end_effector_position, target_position);
+            // let error_norm = numeric.norm2(error);
             let error = calculate_distance(end_effector, target_SE3);
             let error_norm = error * error
+            console.log(error_norm, end_effector, target_SE3)
             // console.log(end_effector_position, target_position, joint_angles, fk[18])
             // engine.draw_debug_vector([0,0,0], end_effector_position, 0.003, 0.03, 0xff2222);
             // console.log(error_norm)
@@ -88,13 +90,10 @@
     }
 
     engine.animation_loop( ()  => {
-        if (!shallowCompareArrays(prev_position, target_position)) {
-            console.log('e')
-            prev_position = [...target_position]
-            let objective_function = generate_objective_function(target_position)
-            let res = optimization_solve(objective_function, current_joint_angles, 40, 'bfgs')
-            current_joint_angles = res
-        }
+        
+        let objective_function = generate_objective_function(target_position)
+        let res = optimization_solve(objective_function, current_joint_angles, 40, 'bfgs')
+        current_joint_angles = res
         calculateForwardKinematics(robot, engine, links, joints, current_joint_angles)
         
         target_position = updatePosition(target_position)

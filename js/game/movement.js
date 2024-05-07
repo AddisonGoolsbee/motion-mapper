@@ -75,7 +75,6 @@ export const updatePosition = (position) => {
     let speed_multiplier = delta_time / MS_PER_FRAME;
     prev_time = curr_time;
     let lag_adjusted_speed = MOVEMENT_SPEED * speed_multiplier;
-    console.log(lag_adjusted_speed)
 
     if (wIsPressed) {
         position[0] -= lag_adjusted_speed;
