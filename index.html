@@ -42,7 +42,9 @@
     let joints = robot.joints;
     let kinematic_hierarchy = robot.kinematic_hierarchy;
     let current_joint_angles = Array(joints.length).fill(0);
-    let target_position = [1,0.7,1]
+    let target_position = [0,0,1]
+    let score = 0;
+    let current_sphere;
 
     let actions = {
         reset: function() {
@@ -94,14 +96,14 @@
             // console.log(pitch)
             // 3x3 identity
             // const SO3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-            const target_SE3 = construct_SE3(y_rot, target_position);
+            // const target_SE3 = construct_SE3(y_rot, target_position);
             // console.log(-pitch, y_rot, target_SE3)
 
-            // let error = numeric.sub(end_effector_position, target_position);
-            // let error_norm = numeric.norm2(error);
-            let error = calculate_distance(end_effector, target_SE3);
-            console.log(error)
-            let error_norm = error * error
+            let error = numeric.sub(end_effector_position, target_position);
+            let error_norm = numeric.norm2(error);
+            // let error = calculate_distance(end_effector, target_SE3);
+            // console.log(error)
+            // let error_norm = error * error
             // console.log(error_norm, end_effector, target_SE3)
             // console.log(end_effector_position, target_position, joint_angles, fk[18])
             // engine.draw_debug_vector([0,0,0], end_effector_position, 0.003, 0.03, 0xff2222);
@@ -110,6 +112,62 @@
         }
 
         return objective_function
+    }
+
+    const spawn_sphere = () => {
+        return engine.draw_debug_sphere([1,0,1], 0.05, 0x00ff00, 0.8, 10)
+    }
+
+    
+
+    const relocate_sphere = (sphere) => {
+        let new_position = randomPointInEllipsoid()
+        console.log(new_position)
+        sphere.position.set(...new_position)
+        score++;
+        console.log(score)
+    }
+
+    current_sphere = spawn_sphere()
+    console.log(current_sphere.position)
+
+    const handle_collision = (current_sphere, position) => {
+        let x = current_sphere.position.x
+        let y = -current_sphere.position.z
+        let z = current_sphere.position.y
+        let distance = Math.sqrt(Math.pow(x - position[0], 2) + Math.pow(y - position[1], 2) + Math.pow(z - position[2], 2))
+        if (distance < 0.05) {
+            relocate_sphere(current_sphere)
+        }
+    }
+
+    function randomPointInEllipsoid() {
+        const XMIN = -0.8
+        const XMAX = 0.7
+        const YMIN = -1.15
+        const YMAX = 1.1
+        const ZMIN = -0.35
+        const ZMAX = 1.05
+
+        let a = (XMAX - XMIN) / 2;
+        let b = (ZMAX - ZMIN) / 2;
+        let c = (YMAX - YMIN) / 2;
+
+        let x0 = XMIN + a;
+        let z0 = ZMIN + b;
+        let y0 = YMIN + c;
+
+        let u = Math.random();
+        let v = Math.random();
+        let theta = 2 * Math.PI * u;
+        let phi = Math.acos(2 * v - 1);
+        let r = Math.cbrt(Math.random()); 
+
+        let x = x0 + a * r * Math.sin(phi) * Math.cos(theta);
+        let z = y0 + b * r * Math.sin(phi) * Math.sin(theta);
+        let y = z0 + c * r * Math.cos(phi);
+
+        return [x, y, z];
     }
 
     engine.animation_loop( ()  => {
@@ -122,11 +180,10 @@
         
         target_position = updatePosition(target_position)
 
-        // engine.draw_debug_vector([0,0,0], target_position, 0.003, 0.03, 0xff2222);
-        // console.log(get_euler_angles(target_position, [0,0,0]))
-
         let first_effector_position = [fk[1][0][3], fk[1][1][3], fk[1][2][3]];
         engine.draw_debug_vector(first_effector_position, target_position, 0.003, 0.03, 0xff2222);
+        handle_collision(current_sphere, target_position)
+        // console.log(target_position)
         // console.log(get_euler_angles(target_position, first_effector_position))
         
     });

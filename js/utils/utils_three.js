@@ -420,6 +420,9 @@ export class ThreeEngine {
         z_up_set_scale(sphere_object, radius, radius, radius);
         */
         this.num_sphere_objects_used_on_curr_frame++;
+        // sphere_object.visible = true;
+        // console.log(this.sphere_objects)
+        return sphere_object
     }
 
     draw_debug_cone(start_point, end_point, radius, color=0x0000ff, opacity=1.0) {
