@@ -29,9 +29,12 @@
     import {shallowCompareArrays} from "./js/game/general.js";
     import {calculateForwardKinematics} from "./js/game/forward_kinematics.js";
     import {construct_SE3, calculate_distance} from "./js/game/SE3_distance.js";
+    import {handle_timer, handle_collision, relocate_sphere, spawn_sphere} from "./js/game/game_logic.js";
 
     document.body.setAttribute('tabindex', '-1');
     document.body.focus();
+
+    let SECONDS_PER_GAME = 60
 
     let engine = ThreeEngine.new_default_3d(1.5, 0.5, 1.5, false);
 
@@ -45,25 +48,53 @@
     let target_position = [0,0,1]
     let score = 0;
     let current_sphere;
+    let seconds_left = SECONDS_PER_GAME
 
     let actions = {
         reset: function() {
             current_joint_angles.fill(0);
+            relocate_sphere(current_sphere, score, settings, gui)
             target_position = [0,0,0.0001]
+            if (score > settings.high_score) {
+                settings.high_score = score
+            }
+            score = 0;
+            settings.score = score;
+            seconds_left = SECONDS_PER_GAME
+            settings.time = `0:${seconds_left.toString().padStart(2, '0')}`
+            
             refresh_displays(gui);
             document.body.focus()
         }
     }
 
     let settings = {
+        time: '1:00',
         score: 0,
         high_score: 0,
+        show_debug: false,
+        enable_pose: false,
+    }
+
+    let controls = {
+        left_right: 'a/d',
+        forward_back: 'w/s',
+        up_down: 'space/shift',
+        move_camera: 'mouse click/drag',
     }
 
     let gui = get_default_lil_gui();
+    gui.add(controls, 'left_right').name('Left/Right ').disable()
+    gui.add(controls, 'forward_back').name('Forward/Back').disable()
+    gui.add(controls, 'up_down').name('Up/Down').disable()
+    gui.add(controls, 'move_camera').name('Move Camera').disable()
+
+    gui.add(settings, 'time').name('Time Remaining').disable()
+    gui.add(settings, 'score').name('Score').disable()
+    gui.add(settings, 'high_score').name('High Score').disable()
     gui.add(actions, 'reset').name('Reset')
-    gui.add(settings, 'score').name('score').disable()
-    gui.add(settings, 'high_score').name('high score').disable()
+    gui.add(settings, 'show_debug').name('Show Goal Position')
+    gui.add(settings, 'enable_pose').name('Enable Pose Matching (WIP)')
 
     const get_euler_angles = (target_position, base_position) => {
         let [x,y,z] = numeric.sub(target_position, base_position)
@@ -80,115 +111,37 @@
             }
 
             joint_angles[1] = Math.max(Math.min(0.7, target_position[1]), 0)
-
-            // console.log(joint_angles)
             let fk = calculateForwardKinematics(robot, engine, links, joints, joint_angles);
             let end_effector = fk[fk.length - 1];
             let end_effector_position = [end_effector[0][3], end_effector[1][3], end_effector[2][3]];
 
-            let first_effector_position = [fk[1][0][3], fk[1][1][3], fk[1][2][3]];
-            let [yaw, pitch] = get_euler_angles(target_position, first_effector_position)
-
-            // let [x,y,z] = numeric.sub(target_position, first_effector_position)
-            // let yaw = Math.atan2(y, x);
-            // let pitch = Math.atan2(z, Math.sqrt(x * x + y * y));
-            // yaw = yaw * 180 / Math.PI;
-            // pitch = pitch * 180 / Math.PI;
-            let y_rot = get_rotation_so3_matrix('y', pitch);
-            
-            // console.log(pitch, yaw)
-            // // let z_rot = get_rotation_so3_matrix('z', yaw);
-            // // const SO3 = mul_matrix_matrix(y_rot, z_rot);
-            // const SO3 = y_rot;
-            // console.log(pitch)
-            // 3x3 identity
-            // const SO3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-            // const target_SE3 = construct_SE3(y_rot, target_position);
-            // console.log(-pitch, y_rot, target_SE3)
-
-            let error = numeric.sub(end_effector_position, target_position);
-            let error_norm = numeric.norm2(error);
-            // let error = calculate_distance(end_effector, target_SE3);
-            // console.log(error)
-            // let error_norm = error * error
-            // console.log(error_norm, end_effector, target_SE3)
-            // console.log(end_effector_position, target_position, joint_angles, fk[18])
-            // engine.draw_debug_vector([0,0,0], end_effector_position, 0.003, 0.03, 0xff2222);
-            // console.log(error_norm)
-            return error_norm;
+            if (settings.enable_pose) {
+                let first_effector_position = [fk[1][0][3], fk[1][1][3], fk[1][2][3]];
+                let [yaw, pitch] = get_euler_angles(target_position, first_effector_position)
+                let y_rot = get_rotation_so3_matrix('y', pitch);
+                let z_rot = get_rotation_so3_matrix('z', yaw);
+                const SO3 = mul_matrix_matrix(y_rot, z_rot);
+                // const SO3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+                const target_SE3 = construct_SE3(SO3, target_position);
+                let error = calculate_distance(end_effector, target_SE3);
+                let error_norm = error * error
+                return error_norm;
+            } else {
+                let error = numeric.sub(end_effector_position, target_position);
+                let error_norm = numeric.norm2(error);
+                return error_norm
+            }
         }
 
         return objective_function
     }
 
-    const spawn_sphere = () => {
-        for (let i = 0; i < 10; i++) {
-            console.log(randomPointInEllipsoid())
-        }
-        let sphere = engine.draw_debug_sphere([1,0,1], 0.05, 0x00ff00, 0.8, 10)
-        let new_position = randomPointInEllipsoid()
-        sphere.position.set(...new_position)
-        return sphere
-    }
-
     
 
-    const relocate_sphere = (sphere) => {
-        let new_position = randomPointInEllipsoid()
-        console.log(new_position)
-        sphere.position.set(...new_position)
-        score++;
-        settings.score = score
-        refresh_displays(gui)
-    }
-
-    current_sphere = spawn_sphere()
-    console.log(current_sphere.position)
-
-    const handle_collision = (current_sphere, position) => {
-        let x = current_sphere.position.x
-        let y = -current_sphere.position.z
-        let z = current_sphere.position.y
-        let distance = Math.sqrt(Math.pow(x - position[0], 2) + Math.pow(y - position[1], 2) + Math.pow(z - position[2], 2))
-        if (distance < 0.07) {
-            relocate_sphere(current_sphere)
-        }
-    }
-
-    function randomPointInEllipsoid() {
-        const XMIN = -0.8
-        const XMAX = 0.7
-        const YMIN = -1.15
-        const YMAX = 1.1
-        const ZMIN = -0.35
-        const ZMAX = 1.05
-
-        let a = Math.abs(XMAX - XMIN) / 2;
-        let b = Math.abs(YMAX - YMIN) / 2;
-        let c = Math.abs(ZMAX - ZMIN) / 2;
-
-        let x0 = XMIN + a;
-        let y0 = YMIN + b;
-        let z0 = ZMIN + c;
-
-        // Generate a random point within the unit sphere
-        let u = Math.random();
-        let v = Math.random();
-        let theta = 2 * Math.PI * u;
-        let phi = Math.acos(2 * v - 1);
-        let r = Math.cbrt(Math.random()); // Cube root to ensure uniform distribution
-
-        // Scale the point to fit the ellipsoid using its radii and translate to the center
-        let x = x0 + a * r * Math.sin(phi) * Math.cos(theta);
-        let y = y0 + b * r * Math.sin(phi) * Math.sin(theta);
-        let z = z0 + c * r * Math.cos(phi);
-
-        return [x, z, y];
-    }
+    current_sphere = spawn_sphere(engine)
 
     engine.animation_loop( ()  => {
        
-        
         let objective_function = generate_objective_function(target_position)
         let res = optimization_solve(objective_function, current_joint_angles, 35, 'gd')
         current_joint_angles = res
@@ -197,10 +150,16 @@
         target_position = updatePosition(target_position)
 
         let first_effector_position = [fk[1][0][3], fk[1][1][3], fk[1][2][3]];
-        engine.draw_debug_vector(first_effector_position, target_position, 0.003, 0.03, 0xff2222);
-        handle_collision(current_sphere, target_position)
-        // console.log(target_position)
-        // console.log(get_euler_angles(target_position, first_effector_position))
+        let last_effector_position = [fk[fk.length - 1][0][3], fk[fk.length - 1][1][3], fk[fk.length - 1][2][3]];
+
+        if (settings.show_debug) {
+            engine.draw_debug_vector(first_effector_position, target_position, 0.003, 0.03, 0xff2222);
+        }
+        
+        // console.log(last_effector_position, target_position, current_sphere.position)
+
+        score = handle_collision(current_sphere, last_effector_position, score, settings, gui)
+        seconds_left = handle_timer(settings, seconds_left, gui, actions)
         
     });
 
