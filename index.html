@@ -77,6 +77,7 @@
     }
 
     let controls = {
+        instructions: 'Move to the orbs',
         left_right: 'a/d',
         forward_back: 'w/s',
         up_down: 'space/shift',
@@ -84,6 +85,7 @@
     }
 
     let gui = get_default_lil_gui();
+    gui.add(controls, 'instructions').name('Instructions:').disable()
     gui.add(controls, 'left_right').name('Left/Right ').disable()
     gui.add(controls, 'forward_back').name('Forward/Back').disable()
     gui.add(controls, 'up_down').name('Up/Down').disable()
